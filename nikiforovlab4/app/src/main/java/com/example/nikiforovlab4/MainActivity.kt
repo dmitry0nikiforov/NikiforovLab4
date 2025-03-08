@@ -126,6 +126,7 @@ fun MainScreen() {
                     composable("tab2") { TabScreen2(paddingValues) }
                     composable("extra") { ExtraScreen(paddingValues) }
                     composable("tab1") { TabScreen1(paddingValues) }
+                    composable("settings") { SettingsScreen(paddingValues, isDarkTheme) { isDarkTheme = it } }
                 }
             }
         }
@@ -507,6 +508,62 @@ fun TabScreen1(paddingValues: PaddingValues) {
         }
     }
 }
+@Composable
+fun SettingsScreen(paddingValues: PaddingValues, isDarkTheme: Boolean, onThemeChange: (Boolean) -> Unit) {
+    var isRussian by remember { mutableStateOf(false) } // Состояние языка
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Text(
+            text = if (isRussian) "Настройки" else "Settings",
+            fontSize = 24.sp,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Переключатель темы
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (isRussian) "Тёмная тема" else "Dark Theme",
+                fontSize = 18.sp
+            )
+            Switch(
+                checked = isDarkTheme,
+                onCheckedChange = { onThemeChange(it) }
+            )
+        }
+
+        // Переключатель языка
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (isRussian) "Русский язык" else "Russian Language",
+                fontSize = 18.sp
+            )
+            Switch(
+                checked = isRussian,
+                onCheckedChange = { isRussian = it }
+            )
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
