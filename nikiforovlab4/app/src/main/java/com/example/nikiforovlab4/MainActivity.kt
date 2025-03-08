@@ -123,6 +123,7 @@ fun MainScreen() {
                 NavHost(navController = navController, startDestination = "main") {
                     composable("main") { MainContent(navController, paddingValues) }
                     composable("done") { DoneScreen(paddingValues) }
+                    composable("tab2") { TabScreen2(paddingValues) }
                 }
             }
         }
@@ -272,6 +273,93 @@ fun DoneScreen(paddingValues: PaddingValues) {
         }
     }
 }
+
+@Composable
+fun TabScreen2(paddingValues: PaddingValues) {
+    val buttonStates = remember { mutableStateListOf(*List(9) { false }.toTypedArray()) }
+    var selectedTab by remember { mutableStateOf(0) }
+    val buttonLabels = listOf(
+        "Soccer", "Football", "Hockey",
+        "Baseball", "Basketball", "Polo",
+        "F-1", "Curling", "Volleyball"
+    )
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            // 9 круглых кнопок
+            for (row in 0..2) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    for (col in 0..2) {
+                        val index = row * 3 + col
+                        val isSelected = buttonStates[index]
+
+                        Button(
+                            onClick = { buttonStates[index] = !buttonStates[index] },
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .size(115.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isSelected) Color.Green else MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text(
+                                text = buttonLabels[index],
+                                fontSize = 16.sp,
+                                color = if (isSelected) Color.White else Color.Unspecified
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // 3 вертикальные вкладки с уникальными горизонтальными элементами
+        items(3) { i ->
+            Tab(
+                selected = selectedTab == i,
+                onClick = { selectedTab = i },
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(8.dp)
+                ) {
+                    when (i) {
+                        0 -> {
+                            Text("Team 1", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                            Text("Time", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                            Text("Team 2", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                        }
+                        1 -> {
+                            Text("Team 1", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                            Text("Time", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                            Text("Team 2", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                        }
+                        2 -> {
+                            Text("Team 1", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                            Text("Time", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                            Text("Team 2", fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
