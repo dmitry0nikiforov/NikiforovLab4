@@ -124,6 +124,7 @@ fun MainScreen() {
                     composable("main") { MainContent(navController, paddingValues) }
                     composable("done") { DoneScreen(paddingValues) }
                     composable("tab2") { TabScreen2(paddingValues) }
+                    composable("extra") { ExtraScreen(paddingValues) }
                 }
             }
         }
@@ -360,6 +361,65 @@ fun TabScreen2(paddingValues: PaddingValues) {
     }
 }
 
+@Composable
+fun ExtraScreen(paddingValues: PaddingValues) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("History Archive", fontSize = 24.sp, modifier = Modifier.padding(bottom = 16.dp))
+
+        Button(
+            onClick = { /* Действие 1 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("The Star and Death of Diego Armandos", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 2 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("How VAR changed the world", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 3 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("\"MoneyBall\": History of Billy Beane's innovative tactic", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 4 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("Tottenham: Was \"In Bruges\" right?", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 5 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("History of World Cups", fontSize = 16.sp)
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
