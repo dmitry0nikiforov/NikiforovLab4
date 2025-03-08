@@ -26,9 +26,108 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContent {
+            MainScreen()
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen() {
+    val navController = rememberNavController()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var isDarkTheme by remember { mutableStateOf(false) } // Состояние темы
+    MaterialTheme(
+        colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()
+    ) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet {
+                    Text("Menu", modifier = Modifier.padding(16.dp), fontSize = 20.sp)
+                    Divider()
+                    Button(
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("done")
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    ) {
+                        Text("News")
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("tab2")
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    ) {
+                        Text("Schedule")
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("extra")
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    ) {
+                        Text("History Archive")
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("tab1")
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    ) {
+                        Text("Latest Transfers")
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("settings")
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    ) {
+                        Text("Settings")
+                    }
+                }
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("My App") },
+                        modifier = Modifier.fillMaxWidth(),
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Menu"
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { navController.navigate("main") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Profile"
+                                )
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                NavHost(navController = navController, startDestination = "main") {
+                    composable("main") { MainContent(navController, paddingValues) }
+                    composable("done") { DoneScreen(paddingValues) }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun MainContent(navController: androidx.navigation.NavController, paddingValues: PaddingValues) {
@@ -111,4 +210,71 @@ fun MainContent(navController: androidx.navigation.NavController, paddingValues:
             Text(text = "Done", fontSize = 18.sp)
         }
     }
+}
+
+@Composable
+fun DoneScreen(paddingValues: PaddingValues) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("News", fontSize = 24.sp, modifier = Modifier.padding(bottom = 16.dp))
+
+        // 5 длинных кнопок
+        Button(
+            onClick = { /* Действие 1 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("Lorem ipsum: dolor sit amet, consectetur adipiscing elit.", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 2 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("A very important article", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 3 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("Not so important article", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 4 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("Clickbait article", fontSize = 16.sp)
+        }
+        Button(
+            onClick = { /* Действие 5 */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .height(50.dp)
+        ) {
+            Text("An unimportant article", fontSize = 16.sp)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreenPreview() {
+    MainScreen()
 }
