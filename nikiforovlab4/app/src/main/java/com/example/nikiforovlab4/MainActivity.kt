@@ -3,11 +3,16 @@ package com.example.lab4
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,10 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -26,6 +29,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.Query
 
 data class ButtonState(val label: String, val isSelected: Boolean = false)
 
@@ -36,7 +47,13 @@ data class MainScreenState(
         ButtonState("Soccer"), ButtonState("Football"), ButtonState("Hockey"),
         ButtonState("Baseball"), ButtonState("Basketball"), ButtonState("Polo"),
         ButtonState("F-1"), ButtonState("Curling"), ButtonState("Volleyball")
-    )
+    ),
+    val allLeagues: List<LeagueItem> = emptyList(),
+    val filteredLeagues: List<LeagueItem> = emptyList(),
+    val teams: List<TeamItem>? = null,
+    val isLoadingLeagues: Boolean = false,
+    val isLoadingTeams: Boolean = false,
+    val error: String? = null
 )
 
 data class SettingsScreenState(
@@ -44,10 +61,180 @@ data class SettingsScreenState(
     val isRussian: Boolean = false
 )
 
-// ViewModels
-class MainViewModel : ViewModel() {
+data class LeaguesResponse(
+    val response: List<LeagueItem>
+)
+
+data class LeagueItem(
+    val league: League,
+    val country: Country
+)
+
+data class League(
+    val id: Int,
+    val name: String,
+    val type: String,
+    val logo: String
+)
+
+data class Country(
+    val name: String,
+    val code: String
+)
+
+data class TeamsResponse(
+    val response: List<TeamItem>
+)
+
+data class TeamItem(
+    val team: Team
+)
+
+data class Team(
+    val id: Int,
+    val name: String,
+    val logo: String
+)
+
+object RetrofitClient {
+    private const val BASE_URL = "https://v3.football.api-sports.io/"
+
+    val apiService: ApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+    }
+}
+
+interface ApiService {
+    @GET("leagues")
+    fun getLeagues(
+        @Header("x-apisports-key") apiKey: String
+    ): Call<LeaguesResponse>
+
+    @GET("teams")
+    fun getTeams(
+        @Header("x-apisports-key") apiKey: String,
+        @Query("league") leagueId: Int
+    ): Call<TeamsResponse>
+}
+
+class SportsRepository {
+    private val apiKey = "65d3130ac3b6be680768a1d5802ed7b2"
     private val _state = MutableStateFlow(MainScreenState())
     val state: StateFlow<MainScreenState> = _state.asStateFlow()
+
+    fun fetchLeagues() {
+        _state.value = _state.value.copy(isLoadingLeagues = true, error = null)
+        RetrofitClient.apiService.getLeagues(apiKey).enqueue(object : Callback<LeaguesResponse> {
+            override fun onResponse(call: Call<LeaguesResponse>, response: Response<LeaguesResponse>) {
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null && body.response.isNotEmpty()) {
+                        _state.value = _state.value.copy(
+                            allLeagues = body.response,
+                            isLoadingLeagues = false
+                        )
+                    } else {
+                        _state.value = _state.value.copy(
+                            allLeagues = emptyList(),
+                            isLoadingLeagues = false,
+                            error = "No leagues found"
+                        )
+                    }
+                } else {
+                    _state.value = _state.value.copy(
+                        allLeagues = emptyList(),
+                        isLoadingLeagues = false,
+                        error = "Server error: ${response.code()}"
+                    )
+                }
+            }
+
+            override fun onFailure(call: Call<LeaguesResponse>, t: Throwable) {
+                _state.value = _state.value.copy(
+                    allLeagues = emptyList(),
+                    isLoadingLeagues = false,
+                    error = "Network error: ${t.message}"
+                )
+            }
+        })
+    }
+
+    fun fetchTeams(leagueId: Int) {
+        _state.value = _state.value.copy(isLoadingTeams = true, error = null)
+        RetrofitClient.apiService.getTeams(apiKey, leagueId).enqueue(object : Callback<TeamsResponse> {
+            override fun onResponse(call: Call<TeamsResponse>, response: Response<TeamsResponse>) {
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null && body.response.isNotEmpty()) {
+                        _state.value = _state.value.copy(
+                            teams = body.response,
+                            isLoadingTeams = false
+                        )
+                    } else {
+                        _state.value = _state.value.copy(
+                            teams = null,
+                            isLoadingTeams = false,
+                            error = "No teams found"
+                        )
+                    }
+                } else {
+                    _state.value = _state.value.copy(
+                        teams = null,
+                        isLoadingTeams = false,
+                        error = "Server error: ${response.code()}"
+                    )
+                }
+            }
+
+            override fun onFailure(call: Call<TeamsResponse>, t: Throwable) {
+                _state.value = _state.value.copy(
+                    teams = null,
+                    isLoadingTeams = false,
+                    error = "Network error: ${t.message}"
+                )
+            }
+        })
+    }
+}
+
+class MainViewModel : ViewModel() {
+    private val repository = SportsRepository()
+    private val _state = MutableStateFlow(MainScreenState())
+    val state: StateFlow<MainScreenState> = _state.asStateFlow()
+
+    init {
+        repository.fetchLeagues()
+        viewModelScope.launch {
+            repository.state.collect { repoState ->
+                _state.value = repoState.copy(filteredLeagues = filterLeagues(repoState))
+            }
+        }
+    }
+
+    private fun filterLeagues(repoState: MainScreenState): List<LeagueItem> {
+        val selectedSports = repoState.buttons
+            .filter { it.isSelected }
+            .map { it.label.lowercase() }
+
+        return if (selectedSports.isEmpty()) {
+            repoState.allLeagues
+        } else {
+            repoState.allLeagues.filter { league ->
+                val leagueName = league.league.name.lowercase()
+                selectedSports.any { sport ->
+                    leagueName.contains(sport) || sport == "soccer" && leagueName.contains("football")
+                }
+            }
+        }
+    }
+
+    fun fetchTeams(leagueId: Int) {
+        repository.fetchTeams(leagueId)
+    }
 
     fun updateText1(newText: String) {
         _state.value = _state.value.copy(text1 = newText)
@@ -78,7 +265,6 @@ class SettingsViewModel : ViewModel() {
     }
 }
 
-// MainActivity
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +276,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// UI
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -186,6 +371,7 @@ fun MainContent(
     paddingValues: PaddingValues
 ) {
     val state by viewModel.state.collectAsState()
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -240,6 +426,59 @@ fun MainContent(
                     }
                 }
             }
+
+            when {
+                state.isLoadingLeagues -> CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                state.error != null -> Text(
+                    text = state.error!!,
+                    color = Color.Red,
+                    modifier = Modifier.padding(16.dp)
+                )
+                state.filteredLeagues.isNotEmpty() -> {
+                    LazyColumn {
+                        items(state.filteredLeagues) { league ->
+                            Text(
+                                text = "${league.league.name} (${league.country.name})",
+                                fontSize = 16.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                                    .clickable {
+                                        scope.launch { viewModel.fetchTeams(league.league.id) }
+                                    }
+                            )
+                        }
+                    }
+                }
+                else -> Text(
+                    text = "No leagues match selected sports",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            state.teams?.let { teams ->
+                when {
+                    state.isLoadingTeams -> CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                    state.error != null -> Text(
+                        text = state.error!!,
+                        color = Color.Red,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                    teams.isNotEmpty() -> {
+                        LazyColumn {
+                            items(teams) { teamItem ->
+                                Text(
+                                    text = teamItem.team.name,
+                                    fontSize = 16.sp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         Button(
@@ -264,23 +503,23 @@ fun DoneScreen(paddingValues: PaddingValues) {
         Text("News", fontSize = 24.sp, modifier = Modifier.padding(bottom = 16.dp))
 
         Button(
-            onClick = { /* Действие 1 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("Lorem ipsum: dolor sit amet, consectetur adipiscing elit.", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 2 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("A very important article", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 3 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("Not so important article", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 4 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("Clickbait article", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 5 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("An unimportant article", fontSize = 16.sp) }
     }
@@ -299,23 +538,23 @@ fun ExtraScreen(paddingValues: PaddingValues) {
         Text("History Archive", fontSize = 24.sp, modifier = Modifier.padding(bottom = 16.dp))
 
         Button(
-            onClick = { /* Действие 1 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("The Star and Death of Diego Armandos", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 2 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("How VAR changed the world", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 3 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("\"MoneyBall\": History of Billy Beane's innovative tactic", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 4 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("Tottenham: Was \"In Bruges\" right?", fontSize = 16.sp) }
         Button(
-            onClick = { /* Действие 5 */ },
+            onClick = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).height(50.dp)
         ) { Text("History of World Cups", fontSize = 16.sp) }
     }
